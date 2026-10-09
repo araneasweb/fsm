@@ -945,11 +945,11 @@ const Generator: React.FC = () => {
         <div>
           source code:{" "}
           <a
-            href="https://github.com/adielBm/fsm/"
+            href="https://github.com/araneasweb/fsm/"
             target="_blank"
             rel="noopener noreferrer"
           >
-            github.com/adielBm/fsm
+            github.com/araneasweb/fsm
           </a>
         </div>
       </footer>
