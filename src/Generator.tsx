@@ -259,33 +259,6 @@ const Generator: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      generate(); // Run generate() after user stops typing
-    }, 500); // Adjust delay as needed (e.g., 300-500ms)
-
-    return () => clearTimeout(handler); // Cleanup timeout on each keystroke
-  }, [
-    states,
-    initialState,
-    acceptingStates,
-    transitions,
-    nodeDistance,
-    innerSep,
-    bendAngle,
-    shorten,
-    initialText,
-    initialWhere,
-    acceptingBy,
-    doubleDistance,
-    arrowType,
-    nodeFillColor,
-    lineWidth,
-    nodeBorderColor,
-    edgeColor,
-    symbolsStyle,
-  ]);
-
   const createTransitions = (transitionString: string): Transitions => {
     const transitionsList = transitionString
       .trim()
@@ -935,6 +908,13 @@ const Generator: React.FC = () => {
         className={`mt-6 p-4 bg-white shadow-md rounded-lg flex justify-center`}
       ></div>
       <div className="flex justify-center space-x-4 mt-4">
+        <button
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 cursor-pointer"
+          type="button"
+          onClick={generate}
+        >
+          Generate
+        </button>
         <button
           className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 cursor-pointer"
           type="button"
