@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './App.css';
+import React, { useState, useEffect, useRef } from "react";
+import "./App.css";
 import tikzjaxJs from "./tikzjax.js?raw"; // For Vite (bundler must support ?raw)
 import Editor from "react-simple-code-editor";
 import Prism from "prismjs";
 import "prismjs/themes/prism.css";
-import { highlight, languages } from 'prismjs';
-import 'prismjs/components/prism-latex';
-import 'prismjs/components/prism-ada';
-import { useLocation } from 'react-router-dom';
+import { highlight, languages } from "prismjs";
+import "prismjs/components/prism-latex";
+import "prismjs/components/prism-ada";
+import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
 interface Transition {
@@ -21,7 +21,10 @@ interface Transitions {
 function getPermutations<T>(arr: T[]): T[][] {
   if (arr.length === 0) return [[]];
   return arr.flatMap((v, i) =>
-    getPermutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map(p => [v, ...p])
+    getPermutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map((p) => [
+      v,
+      ...p,
+    ]),
   );
 }
 
@@ -42,7 +45,10 @@ function getPossibleGridSizes(n: number): number[][] {
   return result;
 }
 
-function calculateTransitionCost(statePositions: Record<string, [number, number]>, transitions: Record<string, Record<string, string[]>>): number {
+function calculateTransitionCost(
+  statePositions: Record<string, [number, number]>,
+  transitions: Record<string, Record<string, string[]>>,
+): number {
   let totalCost = 0;
 
   for (const fromState in transitions) {
@@ -64,7 +70,7 @@ function findOptimalStatePlacement(
   initState: string,
   acceptingStates: string[],
   transitions: Record<string, Record<string, string[]>>,
-  accToRight: boolean
+  accToRight: boolean,
 ): string[][] {
   const n = states.length;
   const allPermutations = getPermutations(states);
@@ -75,7 +81,9 @@ function findOptimalStatePlacement(
 
   for (const [rows, cols] of availableGridSizes) {
     for (const perm of allPermutations) {
-      const grid: string[][] = Array.from({ length: rows }, () => Array(cols).fill(null));
+      const grid: string[][] = Array.from({ length: rows }, () =>
+        Array(cols).fill(null),
+      );
       const statePositions: Record<string, [number, number]> = {};
 
       // Place states in the grid row-wise
@@ -89,20 +97,29 @@ function findOptimalStatePlacement(
       }
 
       // Ensure the initial state is in a leftmost column of some row
-      if (!grid.some(row => row[0] === initState)) continue;
+      if (!grid.some((row) => row[0] === initState)) continue;
 
       // Handle accToRight constraint
       if (accToRight) {
         if (
           !grid.every((row) => {
-            const rightmost = row.findLastIndex(cell => cell !== null);
+            const rightmost = row.findLastIndex((cell) => cell !== null);
             return rightmost === -1 || acceptingStates.includes(row[rightmost]);
           }) &&
           grid.some((row) => {
-            const rightmost = row.findLastIndex(cell => cell !== null);
-            return rightmost !== -1 && row.slice(0, rightmost).some(cell => acceptingStates.includes(cell) && cell !== initState);
+            const rightmost = row.findLastIndex((cell) => cell !== null);
+            return (
+              rightmost !== -1 &&
+              row
+                .slice(0, rightmost)
+                .some(
+                  (cell) =>
+                    acceptingStates.includes(cell) && cell !== initState,
+                )
+            );
           })
-        ) continue;
+        )
+          continue;
       }
 
       // Calculate transition cost
@@ -114,75 +131,83 @@ function findOptimalStatePlacement(
     }
   }
 
-  return bestGrid.filter(row => row.some(cell => cell !== null));
+  return bestGrid.filter((row) => row.some((cell) => cell !== null));
 }
 
+function bendDirection(
+  fromState: string,
+  toState: string,
+  grid: string[][],
+): string[] {
+  const [fromRow, fromCol] = grid.reduce(
+    (acc, row, rowIndex) => {
+      const colIndex = row.indexOf(fromState);
+      if (colIndex !== -1) {
+        acc = [rowIndex, colIndex];
+      }
+      return acc;
+    },
+    [-1, -1],
+  );
+  const [toRow, toCol] = grid.reduce(
+    (acc, row, rowIndex) => {
+      const colIndex = row.indexOf(toState);
+      if (colIndex !== -1) {
+        acc = [rowIndex, colIndex];
+      }
+      return acc;
+    },
 
-
-function bendDirection(fromState: string, toState: string, grid: string[][]): string[] {
-  const [fromRow, fromCol] = grid.reduce((acc, row, rowIndex) => {
-    const colIndex = row.indexOf(fromState);
-    if (colIndex !== -1) {
-      acc = [rowIndex, colIndex];
-    }
-    return acc;
-  }
-    , [-1, -1]);
-  const [toRow, toCol] = grid.reduce((acc, row, rowIndex) => {
-    const colIndex = row.indexOf(toState);
-    if (colIndex !== -1) {
-      acc = [rowIndex, colIndex];
-    }
-    return acc;
-  }
-
-    , [-1, -1]);
+    [-1, -1],
+  );
   if (fromRow === toRow && fromRow === 0) {
-    return fromCol < toCol ? ['left', 'above'] : ['right', 'above'];
+    return fromCol < toCol ? ["left", "above"] : ["right", "above"];
   } else if (fromRow === toRow && fromRow === grid.length - 1) {
-    return fromCol < toCol ? ['right', 'below'] : ['left', 'below'];
+    return fromCol < toCol ? ["right", "below"] : ["left", "below"];
   } else if (fromCol === toCol && fromCol === 0) {
-    return fromRow < toRow ? ['right', 'right'] : ['left', 'left'];
+    return fromRow < toRow ? ["right", "right"] : ["left", "left"];
   } else if (fromCol === toCol && fromCol === grid[0].length - 1) {
-    return fromRow < toRow ? ['left', 'right'] : ['right', 'left'];
+    return fromRow < toRow ? ["left", "right"] : ["right", "left"];
   }
-  return fromCol < toCol ? ['right', 'right'] : ['left', 'left'];
+  return fromCol < toCol ? ["right", "right"] : ["left", "left"];
 }
 
 function formatSymbol(symbol: string, style: string): string {
-  if (style === 'italic') {
+  if (style === "italic") {
     return `$${symbol}$`;
-  } else if (style === 'mono') {  // monospace
+  } else if (style === "mono") {
+    // monospace
     return `\\texttt{${symbol}}`;
   }
   return symbol;
 }
 
 const Generator: React.FC = () => {
-  const [states, setStates] = useState<string>('q1, q2, q3, q4');
-  const [initialState, setInitialState] = useState<string>('q1');
-  const [acceptingStates, setAcceptingStates] = useState<string>('q3,q2');
-  const [transitions, setTransitions] = useState<string>('q3, 1, q2;\nq1, 0, 1, q1;\nq1, 1, q2;\nq2, 0, 1, q3;\nq3, 0, 1, q4;\nq4, 0, 1, q4;\nq2, 1, q4;');
+  const [states, setStates] = useState<string>("q1, q2, q3, q4");
+  const [initialState, setInitialState] = useState<string>("q1");
+  const [acceptingStates, setAcceptingStates] = useState<string>("q3,q2");
+  const [transitions, setTransitions] = useState<string>(
+    "q3, 1, q2;\nq1, 0, 1, q1;\nq1, 1, q2;\nq2, 0, 1, q3;\nq3, 0, 1, q4;\nq4, 0, 1, q4;\nq2, 1, q4;",
+  );
   // style options
   const [nodeDistance, setNodeDistance] = useState<number>(120);
   const [innerSep, setInnerSep] = useState<number>(4);
   const [bendAngle, setBendAngle] = useState<number>(30);
   const [shorten, setShorten] = useState<number>(3);
-  const [initialText, setInitialText] = useState<string>('start');
-  const [initialWhere, setInitialWhere] = useState<string>('left');
-  const [acceptingBy, setAcceptingBy] = useState<string>('accepting by double');
+  const [initialText, setInitialText] = useState<string>("start");
+  const [initialWhere, setInitialWhere] = useState<string>("left");
+  const [acceptingBy, setAcceptingBy] = useState<string>("accepting by double");
   const [doubleDistance, setDoubleDistance] = useState<number>(1.5);
-  const [arrowType, setArrowType] = useState<string>('Stealth[round]');
-  const [symbolsStyle, setSymbolsStyle] = useState<string>('mono');
+  const [arrowType, setArrowType] = useState<string>("Stealth[round]");
+  const [symbolsStyle, setSymbolsStyle] = useState<string>("mono");
   // colors
-  const [nodeFillColor, setNodeFillColor] = useState<string | null>('f0f0f0')
-  const [nodeBorderColor, setNodeBorderColor] = useState<string | null>(null)
-  const [edgeColor, setEdgeColor] = useState<string | null>(null)
+  const [nodeFillColor, setNodeFillColor] = useState<string | null>("f0f0f0");
+  const [nodeBorderColor, setNodeBorderColor] = useState<string | null>(null);
+  const [edgeColor, setEdgeColor] = useState<string | null>(null);
 
-  const [lineWidth, setLineWidth] = useState<string>('thick');
-  const [tikzCode, setTikzCode] = useState<string>('');
+  const [lineWidth, setLineWidth] = useState<string>("thick");
+  const [tikzCode, setTikzCode] = useState<string>("");
   const tikzDiagramRef = useRef<HTMLDivElement>(null);
-
 
   // react-router-dom
   const location = useLocation();
@@ -191,25 +216,28 @@ const Generator: React.FC = () => {
   // Update input values based on URL parameters
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    setStates(params.get('states') || 'q1, q2, q3, q4');
-    setInitialState(params.get('initialState') || 'q1');
-    setAcceptingStates(params.get('acceptingStates') || 'q3,q2');
-    setTransitions(params.get('transitions') || 'q3, 1, q2;\nq1, 0, 1, q1;\nq1, 1, q2;\nq2, 0, 1, q3;\nq3, 0, 1, q4;\nq4, 0, 1, q4;\nq2, 1, q4;');
+    setStates(params.get("states") || "q1, q2, q3, q4");
+    setInitialState(params.get("initialState") || "q1");
+    setAcceptingStates(params.get("acceptingStates") || "q3,q2");
+    setTransitions(
+      params.get("transitions") ||
+        "q3, 1, q2;\nq1, 0, 1, q1;\nq1, 1, q2;\nq2, 0, 1, q3;\nq3, 0, 1, q4;\nq4, 0, 1, q4;\nq2, 1, q4;",
+    );
   }, [location.search]);
 
   const statesToURL = () => {
     const params = new URLSearchParams();
-    params.set('states', states);
-    params.set('initialState', initialState);
-    params.set('acceptingStates', acceptingStates);
-    params.set('transitions', transitions);
+    params.set("states", states);
+    params.set("initialState", initialState);
+    params.set("acceptingStates", acceptingStates);
+    params.set("transitions", transitions);
     return params.toString();
-  }
+  };
 
   // Update URL parameters based on input values
   const updateURL = () => {
     nav({ search: statesToURL() });
-  }
+  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -237,32 +265,60 @@ const Generator: React.FC = () => {
     }, 500); // Adjust delay as needed (e.g., 300-500ms)
 
     return () => clearTimeout(handler); // Cleanup timeout on each keystroke
-  }, [states, initialState, acceptingStates, transitions, nodeDistance, innerSep, bendAngle, shorten, initialText, initialWhere, acceptingBy, doubleDistance, arrowType, nodeFillColor, lineWidth, nodeBorderColor, edgeColor, symbolsStyle]);
-
+  }, [
+    states,
+    initialState,
+    acceptingStates,
+    transitions,
+    nodeDistance,
+    innerSep,
+    bendAngle,
+    shorten,
+    initialText,
+    initialWhere,
+    acceptingBy,
+    doubleDistance,
+    arrowType,
+    nodeFillColor,
+    lineWidth,
+    nodeBorderColor,
+    edgeColor,
+    symbolsStyle,
+  ]);
 
   const createTransitions = (transitionString: string): Transitions => {
-    const transitionsList = transitionString.trim().split(';').filter(line => line.trim() !== '');
+    const transitionsList = transitionString
+      .trim()
+      .split(";")
+      .filter((line) => line.trim() !== "");
     const transitions: Transitions = {};
 
-    transitionsList.forEach(transition => {
-      const parts = transition.trim().split(',').map(part => part.trim());
-      const fromState = parts.shift() || '';
-      const toState = parts.pop() || '';
+    transitionsList.forEach((transition) => {
+      const parts = transition
+        .trim()
+        .split(",")
+        .map((part) => part.trim());
+      const fromState = parts.shift() || "";
+      const toState = parts.pop() || "";
       const symbols = parts;
 
       if (!transitions[fromState]) {
         transitions[fromState] = {};
       }
-      if (!transitions[fromState][symbols.join(',')]) {
-        transitions[fromState][symbols.join(',')] = [];
+      if (!transitions[fromState][symbols.join(",")]) {
+        transitions[fromState][symbols.join(",")] = [];
       }
-      transitions[fromState][symbols.join(',')].push(toState);
+      transitions[fromState][symbols.join(",")].push(toState);
     });
 
     return transitions;
   };
 
-  const checkTransition = (transitions: Transitions, s1: string, s2: string): string[] | null => {
+  const checkTransition = (
+    transitions: Transitions,
+    s1: string,
+    s2: string,
+  ): string[] | null => {
     let symbols: string[] = [];
     if (transitions[s1]) {
       for (const symbol in transitions[s1]) {
@@ -271,15 +327,25 @@ const Generator: React.FC = () => {
         }
       }
     }
-    symbols = symbols.map(s => s.split(',')).flat();
+    symbols = symbols.map((s) => s.split(",")).flat();
 
     return symbols.length > 0 ? symbols.sort() : null;
   };
 
-  const checkConnection = (transitions: Transitions, stateA: string, stateB: string) => {
-    if (checkTransition(transitions, stateA, stateB) && checkTransition(transitions, stateB, stateA)) {
+  const checkConnection = (
+    transitions: Transitions,
+    stateA: string,
+    stateB: string,
+  ) => {
+    if (
+      checkTransition(transitions, stateA, stateB) &&
+      checkTransition(transitions, stateB, stateA)
+    ) {
       return 2;
-    } else if (checkTransition(transitions, stateA, stateB) || checkTransition(transitions, stateB, stateA)) {
+    } else if (
+      checkTransition(transitions, stateA, stateB) ||
+      checkTransition(transitions, stateB, stateA)
+    ) {
       return 1;
     }
     return 0;
@@ -312,9 +378,13 @@ const Generator: React.FC = () => {
       }
     }
     return null; // Return null if item not found
-  }
+  };
 
-  const doesLineCrossOtherElements = (arr2d: string[][], e1: string, e2: string): boolean => {
+  const doesLineCrossOtherElements = (
+    arr2d: string[][],
+    e1: string,
+    e2: string,
+  ): boolean => {
     const findPosition = (element: string): [number, number] | null => {
       for (let i = 0; i < arr2d.length; i++) {
         for (let j = 0; j < arr2d[i].length; j++) {
@@ -343,8 +413,10 @@ const Generator: React.FC = () => {
         if ((x2 - x1) * (j - y1) === (y2 - y1) * (i - x1)) {
           // Check if the point (i, j) is between (x1, y1) and (x2, y2)
           if (
-            Math.min(x1, x2) <= i && i <= Math.max(x1, x2) &&
-            Math.min(y1, y2) <= j && j <= Math.max(y1, y2)
+            Math.min(x1, x2) <= i &&
+            i <= Math.max(x1, x2) &&
+            Math.min(y1, y2) <= j &&
+            j <= Math.max(y1, y2)
           ) {
             return true; // Another element is crossed
           }
@@ -372,22 +444,24 @@ const Generator: React.FC = () => {
       return `$${str[0]}_{${str.slice(1)}}$`; // Format as LaTeX
     }
     return `$${str}$`; // Default format
-  }
+  };
 
   const generate = () => {
-    const acceptingStatesArray = acceptingStates.split(',').map(s => s.trim());
-    let code = '';
+    const acceptingStatesArray = acceptingStates
+      .split(",")
+      .map((s) => s.trim());
+    let code = "";
     code += `% Generated by ${window.location.origin + window.location.pathname}?${statesToURL()}\n`;
     code += `\\usepackage{tikz}\n\\usetikzlibrary{automata, arrows.meta, positioning}\n\\begin{document}\n`;
 
     if (nodeFillColor) {
-      code += `\\definecolor{nodeFillColor}{HTML}{${nodeFillColor.replace('#', '')}}\n`;
+      code += `\\definecolor{nodeFillColor}{HTML}{${nodeFillColor.replace("#", "")}}\n`;
     }
     if (nodeBorderColor) {
-      code += `\\definecolor{nodeBorderColor}{HTML}{${nodeBorderColor.replace('#', '')}}\n`;
+      code += `\\definecolor{nodeBorderColor}{HTML}{${nodeBorderColor.replace("#", "")}}\n`;
     }
     if (edgeColor) {
-      code += `\\definecolor{edgeColor}{HTML}{${edgeColor.replace('#', '')}}\n`;
+      code += `\\definecolor{edgeColor}{HTML}{${edgeColor.replace("#", "")}}\n`;
     }
 
     code += `\\begin{tikzpicture}`;
@@ -420,7 +494,7 @@ const Generator: React.FC = () => {
       code += `every edge/.style={draw=edgeColor},\n`;
     }
 
-    if (acceptingBy === 'accepting by double') {
+    if (acceptingBy === "accepting by double") {
       code += `accepting by double/.style={double, double distance=${doubleDistance}pt},\n`;
     } else {
       code += `accepting/.style=accepting by arrow,\n`;
@@ -433,53 +507,97 @@ const Generator: React.FC = () => {
     // console.log(transitionsObj);
 
     // Generate nodes
-    const statesArray = states.split(/,|;/).map(s => s.trim()).filter(s => s !== '');
+    const statesArray = states
+      .split(/,|;/)
+      .map((s) => s.trim())
+      .filter((s) => s !== "");
 
     // Auto layout
-    const optimalStatePlacement = findOptimalStatePlacement(statesArray, initialState, acceptingStatesArray, transitionsObj, acceptingBy === 'accepting by arrow');
+    const optimalStatePlacement = findOptimalStatePlacement(
+      statesArray,
+      initialState,
+      acceptingStatesArray,
+      transitionsObj,
+      acceptingBy === "accepting by arrow",
+    );
     let previousRowFirstState: string | null = null;
     optimalStatePlacement.forEach((row, rowIndex) => {
       let previousState: string | null = null;
       row.forEach((state, colIndex) => {
         if (state) {
-          let stateType = state == initialState ? `, initial${initialWhere ? ` ${initialWhere}` : ''}` : '';
+          let stateType =
+            state == initialState
+              ? `, initial${initialWhere ? ` ${initialWhere}` : ""}`
+              : "";
           if (acceptingStatesArray.includes(state)) {
-            stateType += ', accepting';
+            stateType += ", accepting";
           }
           // statePositions[state] = [colIndex * 2, -rowIndex * 2];
           if (colIndex === 0 && rowIndex > 0 && previousRowFirstState) {
-            code += `\t\\node[state${stateType}] (${state.replace('\\', '')}) [below of=${previousRowFirstState.replace('\\', '')}] {${formatState(state)}};\n`;
+            code += `\t\\node[state${stateType}] (${state.replace("\\", "")}) [below of=${previousRowFirstState.replace("\\", "")}] {${formatState(state)}};\n`;
             previousRowFirstState = state;
           } else if (colIndex > 0 && previousState) {
-            code += `\t\\node[state${stateType}] (${state.replace('\\', '')}) [right of=${previousState.replace('\\', '')}] {${formatState(state)}};\n`;
+            code += `\t\\node[state${stateType}] (${state.replace("\\", "")}) [right of=${previousState.replace("\\", "")}] {${formatState(state)}};\n`;
           } else {
-            code += `\t\\node[state${stateType}] (${state.replace('\\', '')}) {${formatState(state)}};\n`;
+            code += `\t\\node[state${stateType}] (${state.replace("\\", "")}) {${formatState(state)}};\n`;
             previousRowFirstState = state;
           }
           previousState = state;
-
         }
       });
     });
 
-    const bendDirectionArray: string[][] = Array.from({ length: statesArray.length }, () => Array(statesArray.length).fill(''));
+    const bendDirectionArray: string[][] = Array.from(
+      { length: statesArray.length },
+      () => Array(statesArray.length).fill(""),
+    );
     statesArray.forEach((fromState, fromIndex) => {
       statesArray.forEach((toState, toIndex) => {
         // Loops
-        if (fromState === toState && checkTransition(transitionsObj, fromState, toState)) {
-          const loopPos = getEdge(optimalStatePlacement, fromState) || 'below';
-          code += `    \\draw (${fromState.replace('\\', '')}) edge[loop ${loopPos}, ->]`;
-          code += `node[auto]{${checkTransition(transitionsObj, fromState, toState)?.map(symbol => formatSymbol(symbol, symbolsStyle)).join(', ')}} (${fromState.replace('\\', '')});\n`;
+        if (
+          fromState === toState &&
+          checkTransition(transitionsObj, fromState, toState)
+        ) {
+          const loopPos = getEdge(optimalStatePlacement, fromState) || "below";
+          code += `    \\draw (${fromState.replace("\\", "")}) edge[loop ${loopPos}, ->]`;
+          code += `node[auto]{${checkTransition(
+            transitionsObj,
+            fromState,
+            toState,
+          )
+            ?.map((symbol) => formatSymbol(symbol, symbolsStyle))
+            .join(", ")}} (${fromState.replace("\\", "")});\n`;
           // Non-loops
         } else if (checkTransition(transitionsObj, fromState, toState)) {
-          if (!doesLineCrossOtherElements(optimalStatePlacement, fromState, toState) && checkConnection(transitionsObj, fromState, toState) === 1) {
-            code += `    \\draw (${fromState.replace('\\', '')}) edge [above, ->] node[auto]{${checkTransition(transitionsObj, fromState, toState)?.map(s => formatSymbol(s, symbolsStyle)).join(', ')}} (${toState.replace('\\', '')});\n`;
+          if (
+            !doesLineCrossOtherElements(
+              optimalStatePlacement,
+              fromState,
+              toState,
+            ) &&
+            checkConnection(transitionsObj, fromState, toState) === 1
+          ) {
+            code += `    \\draw (${fromState.replace("\\", "")}) edge [above, ->] node[auto]{${checkTransition(
+              transitionsObj,
+              fromState,
+              toState,
+            )
+              ?.map((s) => formatSymbol(s, symbolsStyle))
+              .join(", ")}} (${toState.replace("\\", "")});\n`;
           } else {
-            const bD = bendDirectionArray[fromIndex][toIndex] || bendDirection(fromState, toState, optimalStatePlacement)[0]
+            const bD =
+              bendDirectionArray[fromIndex][toIndex] ||
+              bendDirection(fromState, toState, optimalStatePlacement)[0];
             bendDirectionArray[fromIndex][toIndex] = bD;
             bendDirectionArray[toIndex][fromIndex] = bD;
-            code += `    \\draw (${fromState.replace('\\', '')}) edge[bend ${bD}, right, ->] `;
-            code += `node[${bendDirection(fromState, toState, optimalStatePlacement)[1]}]{${checkTransition(transitionsObj, fromState, toState)?.map(s => formatSymbol(s, symbolsStyle)).join(', ')}} (${toState.replace('\\', '')});\n`;
+            code += `    \\draw (${fromState.replace("\\", "")}) edge[bend ${bD}, right, ->] `;
+            code += `node[${bendDirection(fromState, toState, optimalStatePlacement)[1]}]{${checkTransition(
+              transitionsObj,
+              fromState,
+              toState,
+            )
+              ?.map((s) => formatSymbol(s, symbolsStyle))
+              .join(", ")}} (${toState.replace("\\", "")});\n`;
           }
         }
       });
@@ -489,8 +607,6 @@ const Generator: React.FC = () => {
     setTikzCode(code);
   };
 
-
-
   const renderTikz = (code: string | null) => {
     if (!window.tikzjax) {
       console.error(window.tikzjax);
@@ -498,12 +614,12 @@ const Generator: React.FC = () => {
     // In a real implementation, we'd need to handle TikZJax rendering here
     if (tikzDiagramRef.current && window.tikzjax) {
       // Clear previous diagram
-      tikzDiagramRef.current.innerHTML = '';
+      tikzDiagramRef.current.innerHTML = "";
 
       // Create a script element with the TikZ code
-      const script = document.createElement('script');
-      script.setAttribute('type', 'text/tikz');
-      script.setAttribute('data-show-console', 'true');
+      const script = document.createElement("script");
+      script.setAttribute("type", "text/tikz");
+      script.setAttribute("data-show-console", "true");
       script.textContent = code;
 
       // Append the script to the diagram container
@@ -513,18 +629,18 @@ const Generator: React.FC = () => {
       try {
         window.tikzjax.process(tikzDiagramRef.current);
       } catch (error) {
-        console.error('Error rendering TikZ diagram:', error);
+        console.error("Error rendering TikZ diagram:", error);
       }
     }
-  }
+  };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(tikzCode).then(() => {
-      const button = document.getElementById('copyToClipboard');
+      const button = document.getElementById("copyToClipboard");
       if (button) {
-        button.textContent = 'Copied!';
+        button.textContent = "Copied!";
         setTimeout(() => {
-          button.textContent = 'Copy to Clipboard';
+          button.textContent = "Copy to Clipboard";
         }, 2000);
       }
     });
@@ -535,15 +651,21 @@ const Generator: React.FC = () => {
     if (svg) {
       let fontFaceRules = "";
 
-      [...document.styleSheets].forEach(sheet => {
+      [...document.styleSheets].forEach((sheet) => {
         try {
-          [...sheet.cssRules].forEach(rule => {
-            if (/cmr10|cmmi10/.test(rule.cssText)) fontFaceRules += rule.cssText + "\n";
+          [...sheet.cssRules].forEach((rule) => {
+            if (/cmr10|cmmi10/.test(rule.cssText))
+              fontFaceRules += rule.cssText + "\n";
           });
-        } catch (err) { /* Ignore errors for cross-origin stylesheets */ }
+        } catch (err) {
+          /* Ignore errors for cross-origin stylesheets */
+        }
       });
 
-      const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+      const styleElement = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "style",
+      );
       styleElement.textContent = fontFaceRules;
       svg.prepend(styleElement);
 
@@ -551,7 +673,7 @@ const Generator: React.FC = () => {
       const blob = new Blob([svgString], { type: "image/svg+xml" });
       const a = Object.assign(document.createElement("a"), {
         href: URL.createObjectURL(blob),
-        download: "exported.svg"
+        download: "exported.svg",
       });
 
       document.body.appendChild(a);
@@ -561,14 +683,38 @@ const Generator: React.FC = () => {
     }
   };
 
-
   return (
     <div className="container mx-auto p-2 max-w-3xl">
-      <h1 className="font-bold text-center">Finite Automaton Diagram Generator</h1>
+      <h1 className="font-bold text-center">
+        Finite Automaton Diagram Generator
+      </h1>
       <p className="text-center text-gray-500">
-        Generate <a href="https://en.wikipedia.org/wiki/PGF/TikZ" target="_blank" rel="noopener noreferrer">TikZ</a> (with <a href="https://tikz.dev/library-automata" target="_blank" rel="noopener noreferrer">automata</a> library) code for a diagram of <a href="https://en.wikipedia.org/wiki/Finite-state_machine" target="_blank">finite automaton</a> (DFA/NFA).
+        Generate{" "}
+        <a
+          href="https://en.wikipedia.org/wiki/PGF/TikZ"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          TikZ
+        </a>{" "}
+        (with{" "}
+        <a
+          href="https://tikz.dev/library-automata"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          automata
+        </a>{" "}
+        library) code for a diagram of{" "}
+        <a
+          href="https://en.wikipedia.org/wiki/Finite-state_machine"
+          target="_blank"
+        >
+          finite automaton
+        </a>{" "}
+        (DFA/NFA).
       </p>
-      <hr className='my-4'></hr>
+      <hr className="my-4"></hr>
       <form className="space-y-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -584,9 +730,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="initialState">
-              Initial State:
-            </label>
+            <label htmlFor="initialState">Initial State:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="text"
@@ -596,9 +740,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="acceptingStates">
-              Accepting States:
-            </label>
+            <label htmlFor="acceptingStates">Accepting States:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="text"
@@ -609,23 +751,28 @@ const Generator: React.FC = () => {
           </div>
         </div>
         <label htmlFor="transitions">
-          Transitions: <code className="text-gray-600">fromState, symbol1, ... , toState; ...</code>
+          Transitions:{" "}
+          <code className="text-gray-600">
+            fromState, symbol1, ... , toState; ...
+          </code>
         </label>
         <Editor
           id="transitions-editor"
           className="w-full"
           value={transitions}
           onValueChange={(code) => setTransitions(code)}
-          highlight={(code) => Prism.highlight(code, languages.ada, 'ada')}
+          highlight={(code) => Prism.highlight(code, languages.ada, "ada")}
           padding={10}
-          style={{ fontFamily: "monospace", backgroundColor: "white", fontSize: 14 }}
+          style={{
+            fontFamily: "monospace",
+            backgroundColor: "white",
+            fontSize: 14,
+          }}
         />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-200 p-4 rounded-lg">
           <h3 className="text-lg font-semibold">Style Options:</h3>
           <div>
-            <label htmlFor="nodeDistance">
-              Node Distance:
-            </label>
+            <label htmlFor="nodeDistance">Node Distance:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="number"
@@ -635,9 +782,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="innerSep">
-              Inner Sep:
-            </label>
+            <label htmlFor="innerSep">Inner Sep:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="number"
@@ -647,9 +792,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="bendAngle">
-              Bend Angle:
-            </label>
+            <label htmlFor="bendAngle">Bend Angle:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="number"
@@ -659,9 +802,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="shorten">
-              Shorten:
-            </label>
+            <label htmlFor="shorten">Shorten:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="number"
@@ -671,9 +812,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="initialText">
-              Initial Text:
-            </label>
+            <label htmlFor="initialText">Initial Text:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="text"
@@ -683,9 +822,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="initialWhere">
-              Initial Where:
-            </label>
+            <label htmlFor="initialWhere">Initial Where:</label>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg"
               id="initialWhere"
@@ -699,9 +836,7 @@ const Generator: React.FC = () => {
             </select>
           </div>
           <div>
-            <label htmlFor="acceptingBy">
-              Accepting By:
-            </label>
+            <label htmlFor="acceptingBy">Accepting By:</label>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg"
               id="acceptingBy"
@@ -713,9 +848,7 @@ const Generator: React.FC = () => {
             </select>
           </div>
           <div>
-            <label htmlFor="doubleDistance">
-              Double Distance:
-            </label>
+            <label htmlFor="doubleDistance">Double Distance:</label>
             <input
               className="w-full p-2 border border-gray-300 rounded-lg"
               type="number"
@@ -727,9 +860,7 @@ const Generator: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="arrowType">
-              Arrow Type:
-            </label>
+            <label htmlFor="arrowType">Arrow Type:</label>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg"
               id="arrowType"
@@ -741,45 +872,37 @@ const Generator: React.FC = () => {
             </select>
           </div>
           <div>
-            <label htmlFor="nodeColor">
-              Node Fill Color:
-            </label>
+            <label htmlFor="nodeColor">Node Fill Color:</label>
             <input
               className="w-full border border-gray-300 rounded-lg"
               type="color"
               id="nodeFillColor"
-              value={nodeFillColor || ''}
+              value={nodeFillColor || ""}
               onChange={(e) => setNodeFillColor(e.target.value)}
             />
           </div>
           <div>
-            <label htmlFor="nodeBorderColor">
-              Node Border Color:
-            </label>
+            <label htmlFor="nodeBorderColor">Node Border Color:</label>
             <input
               className="w-full border border-gray-300 rounded-lg"
               type="color"
               id="nodeBorderColor"
-              value={nodeBorderColor || ''}
+              value={nodeBorderColor || ""}
               onChange={(e) => setNodeBorderColor(e.target.value)}
             />
           </div>
           <div>
-            <label htmlFor="edgeColor">
-              Edge Color:
-            </label>
+            <label htmlFor="edgeColor">Edge Color:</label>
             <input
               className="w-full border border-gray-300 rounded-lg"
               type="color"
               id="edgeColor"
-              value={edgeColor || ''}
+              value={edgeColor || ""}
               onChange={(e) => setEdgeColor(e.target.value)}
             />
           </div>
           <div>
-            <label htmlFor="lineWidth">
-              Line Width:
-            </label>
+            <label htmlFor="lineWidth">Line Width:</label>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg"
               id="lineWidth"
@@ -792,9 +915,7 @@ const Generator: React.FC = () => {
             </select>
           </div>
           <div>
-            <label htmlFor="symbolsStyle">
-              Symbols Style:
-            </label>
+            <label htmlFor="symbolsStyle">Symbols Style:</label>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg"
               id="symbolsStyle"
@@ -808,7 +929,11 @@ const Generator: React.FC = () => {
           </div>
         </div>
       </form>
-      <div id="tikzDiagram" ref={tikzDiagramRef} className={`mt-6 p-4 bg-white shadow-md rounded-lg flex justify-center`} ></div>
+      <div
+        id="tikzDiagram"
+        ref={tikzDiagramRef}
+        className={`mt-6 p-4 bg-white shadow-md rounded-lg flex justify-center`}
+      ></div>
       <div className="flex justify-center space-x-4 mt-4">
         <button
           className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 cursor-pointer"
@@ -832,13 +957,14 @@ const Generator: React.FC = () => {
         className="mt-6"
         value={tikzCode}
         onValueChange={(code) => setTikzCode(code)}
-        highlight={(code) => highlight(code, languages.latex, 'latex')}
+        highlight={(code) => highlight(code, languages.latex, "latex")}
         padding={10}
         style={{ fontFamily: "monospace", backgroundColor: "white" }}
       />
       <footer className="text-center m-8 text-gray-500">
         <div>
-          source code: <a
+          source code:{" "}
+          <a
             href="https://github.com/adielBm/fsm/"
             target="_blank"
             rel="noopener noreferrer"
@@ -846,7 +972,6 @@ const Generator: React.FC = () => {
             github.com/adielBm/fsm
           </a>
         </div>
-
       </footer>
     </div>
   );
